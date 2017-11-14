@@ -14,35 +14,60 @@
 
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
+function awp_users() {
+	return get_users();
+}
+
+function has_active_subscription( $user_id ) {
+	if ( empty( $user_id ) ) {
+		return false;
+	}
+	if ( WC_Subscriptions_Manager::user_has_subscription( $user_id, '', 'active') ) {
+		return true;
+	}
+	return false;
+}
+
 /**
  * Get subscriptions by user email
  *
  * @param array $data Options for the function.
  * @return obj|null Subscriptions object
  */
-function awp_user_subscriptions( $data ) {
-	$user_id = get_user_by( 'email', $data['email'] );
- 
-	if ( empty( $user_id ) ) {
+function awp_user_subscriptions( WP_REST_Request $data ) {
+	$woocommerce = wc();
+
+	$user = get_user_by( 'email', $data['email'] );
+
+	if ( empty( $user ) ) {
 		return null;
 	}
 
-	$sub_array = wcs_get_users_subscriptions( $user_id );
+	$user_id = (int) $user->data->ID;
 
-	if ( ! is_array( $sub_array ) ) {
-		return null;
-	}
-
-	$sub_obj = array_values( $sub_array )[0]; // here we are getting the *first* subscription. Instead we should probably look for any Active subscriptions...
- 
-	return $woocommerce->get( 'subscriptions/' . $sub_obj->id );
+	return has_active_subscription( $user_id );
 }
 
 
 add_action( 'rest_api_init', function () {
-	register_rest_route( 'awp-api/v1', '/user/(?P<email>\d+)', array(
+	register_rest_route( 'awp/v1', '/user/', array(
+		'methods' => 'GET',
+		'callback' => 'awp_users',
+	) );
+	register_rest_route( 'awp/v1', '/user/(?P<email>.+)', array(
 		'methods' => 'GET',
 		'callback' => 'awp_user_subscriptions',
+		// 'args' => array(
+		// 	'email' => array(
+		// 		// 'required' => true,
+		// 		'sanitize_callback' => function( $param, $request, $key ) {
+		// 			return filter_var($email, FILTER_SANITIZE_EMAIL);
+		// 		},
+		// 		'validate_callback' => function( $param, $request, $key ) {
+		// 			return filter_var($email, FILTER_VALIDATE_EMAIL);
+		// 		}
+		// 	)
+		// )
 	) );
 } );
 
@@ -53,7 +78,7 @@ add_action( 'rest_api_init', function () {
 add_shortcode( 'test_api_connection', 'my_test_api_connection' );
 function my_test_api_connection() {
 
-	$url = get_site_url() . '/wp-json';
+	$url = get_site_url() . '/wp-json/awp/v1';
 
 	$response = wp_remote_get( $url );
 
