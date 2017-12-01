@@ -45,7 +45,9 @@ function awp_user_subscriptions( WP_REST_Request $data ) {
 
 	$user_id = (int) $user->data->ID;
 
-	return has_active_subscription( $user_id );
+	$status = array("subscription_active" => has_active_subscription( $user_id ));
+
+	wp_send_json( $status );
 }
 
 
