@@ -40,7 +40,7 @@ function awp_user_subscriptions( WP_REST_Request $data ) {
 	$user = get_user_by( 'email', $data['email'] );
 
 	if ( empty( $user ) ) {
-		return null;
+		return wp_send_json( array("error" => "user not found", "status" => 404) );
 	}
 
 	$user_id = (int) $user->data->ID;
